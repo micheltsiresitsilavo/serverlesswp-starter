@@ -11,6 +11,7 @@
  * Core class used to implement displaying installed plugins in a list table.
  *
  * @since 3.1.0
+ * @access private
  *
  * @see WP_List_Table
  */
@@ -61,7 +62,8 @@ class WP_Plugins_List_Table extends WP_List_Table {
 
 		$this->show_autoupdates = wp_is_auto_update_enabled_for_type( 'plugin' )
 			&& current_user_can( 'update_plugins' )
-			&& ( ! is_multisite() || $this->screen->in_admin( 'network' ) );
+			&& ( ! is_multisite() || $this->screen->in_admin( 'network' ) )
+			&& ! in_array( $status, array( 'mustuse', 'dropins' ), true );
 	}
 
 	/**
@@ -261,10 +263,8 @@ class WP_Plugins_List_Table extends WP_List_Table {
 				}
 			} elseif ( ( ! $screen->in_admin( 'network' ) && is_plugin_active( $plugin_file ) )
 				|| ( $screen->in_admin( 'network' ) && is_plugin_active_for_network( $plugin_file ) ) ) {
-				/*
-				 * On the non-network screen, populate the active list with plugins that are individually activated.
-				 * On the network admin screen, populate the active list with plugins that are network-activated.
-				 */
+				// On the non-network screen, populate the active list with plugins that are individually activated.
+				// On the network admin screen, populate the active list with plugins that are network-activated.
 				$plugins['active'][ $plugin_file ] = $plugin_data;
 
 				if ( ! $screen->in_admin( 'network' ) && is_plugin_paused( $plugin_file ) ) {
@@ -297,15 +297,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			$status            = 'search';
 			$plugins['search'] = array_filter( $plugins['all'], array( $this, '_search_callback' ) );
 		}
-
-		/**
-		 * Filters the array of plugins for the list table.
-		 *
-		 * @since 6.3.0
-		 *
-		 * @param array[] $plugins An array of arrays of plugin data, keyed by context.
-		 */
-		$plugins = apply_filters( 'plugins_list', $plugins );
 
 		$totals = array();
 		foreach ( $plugins as $type => $list ) {
@@ -413,7 +404,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		global $plugins;
 
 		if ( ! empty( $_REQUEST['s'] ) ) {
-			$s = esc_html( urldecode( wp_unslash( $_REQUEST['s'] ) ) );
+			$s = esc_html( wp_unslash( $_REQUEST['s'] ) );
 
 			/* translators: %s: Plugin search term. */
 			printf( __( 'No plugins found for: %s.' ), '<strong>' . $s . '</strong>' );
@@ -461,8 +452,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 
 	/**
 	 * @global string $status
-	 *
-	 * @return string[] Array of column titles keyed by their column name.
+	 * @return array
 	 */
 	public function get_columns() {
 		global $status;
@@ -473,7 +463,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			'description' => __( 'Description' ),
 		);
 
-		if ( $this->show_autoupdates && ! in_array( $status, array( 'mustuse', 'dropins' ), true ) ) {
+		if ( $this->show_autoupdates ) {
 			$columns['auto-updates'] = __( 'Automatic Updates' );
 		}
 
@@ -586,15 +576,16 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			}
 
 			if ( 'search' !== $type ) {
-				$status_links[ $type ] = array(
-					'url'     => add_query_arg( 'plugin_status', $type, 'plugins.php' ),
-					'label'   => sprintf( $text, number_format_i18n( $count ) ),
-					'current' => $type === $status,
+				$status_links[ $type ] = sprintf(
+					"<a href='%s'%s>%s</a>",
+					add_query_arg( 'plugin_status', $type, 'plugins.php' ),
+					( $type === $status ) ? ' class="current" aria-current="page"' : '',
+					sprintf( $text, number_format_i18n( $count ) )
 				);
 			}
 		}
 
-		return $this->get_views_links( $status_links );
+		return $status_links;
 	}
 
 	/**
@@ -761,7 +752,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			$plugin_name = $plugin_file;
 
 			if ( $plugin_file !== $plugin_data['Name'] ) {
-				$plugin_name .= '<br />' . $plugin_data['Name'];
+				$plugin_name .= '<br/>' . $plugin_data['Name'];
 			}
 
 			if ( true === ( $dropins[ $plugin_file ][1] ) ) { // Doesn't require a constant.
@@ -911,7 +902,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 * @param string[] $actions     An array of plugin action links. By default this can include
 			 *                              'activate', 'deactivate', and 'delete'.
 			 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
-			 * @param array    $plugin_data An array of plugin data. See get_plugin_data()
+			 * @param array    $plugin_data An array of plugin data. See `get_plugin_data()`
 			 *                              and the {@see 'plugin_row_meta'} filter for the list
 			 *                              of possible values.
 			 * @param string   $context     The plugin context. By default this can include 'all',
@@ -931,7 +922,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 * @param string[] $actions     An array of plugin action links. By default this can include
 			 *                              'activate', 'deactivate', and 'delete'.
 			 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
-			 * @param array    $plugin_data An array of plugin data. See get_plugin_data()
+			 * @param array    $plugin_data An array of plugin data. See `get_plugin_data()`
 			 *                              and the {@see 'plugin_row_meta'} filter for the list
 			 *                              of possible values.
 			 * @param string   $context     The plugin context. By default this can include 'all',
@@ -953,7 +944,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 *                              'activate', 'deactivate', and 'delete'. With Multisite active
 			 *                              this can also include 'network_active' and 'network_only' items.
 			 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
-			 * @param array    $plugin_data An array of plugin data. See get_plugin_data()
+			 * @param array    $plugin_data An array of plugin data. See `get_plugin_data()`
 			 *                              and the {@see 'plugin_row_meta'} filter for the list
 			 *                              of possible values.
 			 * @param string   $context     The plugin context. By default this can include 'all',
@@ -975,7 +966,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 *                              'activate', 'deactivate', and 'delete'. With Multisite active
 			 *                              this can also include 'network_active' and 'network_only' items.
 			 * @param string   $plugin_file Path to the plugin file relative to the plugins directory.
-			 * @param array    $plugin_data An array of plugin data. See get_plugin_data()
+			 * @param array    $plugin_data An array of plugin data. See `get_plugin_data()`
 			 *                              and the {@see 'plugin_row_meta'} filter for the list
 			 *                              of possible values.
 			 * @param string   $context     The plugin context. By default this can include 'all',
@@ -993,10 +984,10 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			$checkbox = '';
 		} else {
 			$checkbox = sprintf(
-				'<label class="label-covers-full-cell" for="%1$s"><span class="screen-reader-text">%2$s</span></label>' .
+				'<label class="screen-reader-text" for="%1$s">%2$s</label>' .
 				'<input type="checkbox" name="checked[]" value="%3$s" id="%1$s" />',
 				$checkbox_id,
-				/* translators: Hidden accessibility text. %s: Plugin name. */
+				/* translators: %s: Plugin name. */
 				sprintf( __( 'Select %s' ), $plugin_data['Name'] ),
 				esc_attr( $plugin_file )
 			);
@@ -1032,7 +1023,8 @@ class WP_Plugins_List_Table extends WP_List_Table {
 
 		list( $columns, $hidden, $sortable, $primary ) = $this->get_column_info();
 
-		$auto_updates = (array) get_site_option( 'auto_update_plugins', array() );
+		$auto_updates      = (array) get_site_option( 'auto_update_plugins', array() );
+		$available_updates = get_site_transient( 'update_plugins' );
 
 		foreach ( $columns as $column_name => $column_display_name ) {
 			$extra_classes = '';
@@ -1164,7 +1156,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 					echo '</td>';
 					break;
 				case 'auto-updates':
-					if ( ! $this->show_autoupdates || in_array( $status, array( 'mustuse', 'dropins' ), true ) ) {
+					if ( ! $this->show_autoupdates ) {
 						break;
 					}
 
@@ -1237,7 +1229,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 					 *                            including toggle auto-update action links and
 					 *                            time to next update.
 					 * @param string $plugin_file Path to the plugin file relative to the plugins directory.
-					 * @param array  $plugin_data An array of plugin data. See get_plugin_data()
+					 * @param array  $plugin_data An array of plugin data. See `get_plugin_data()`
 					 *                            and the {@see 'plugin_row_meta'} filter for the list
 					 *                            of possible values.
 					 */
@@ -1259,7 +1251,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 					 *
 					 * @param string $column_name Name of the column.
 					 * @param string $plugin_file Path to the plugin file relative to the plugins directory.
-					 * @param array  $plugin_data An array of plugin data. See get_plugin_data()
+					 * @param array  $plugin_data An array of plugin data. See `get_plugin_data()`
 					 *                            and the {@see 'plugin_row_meta'} filter for the list
 					 *                            of possible values.
 					 */
@@ -1335,7 +1327,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		 *              to possible values for `$status`.
 		 *
 		 * @param string $plugin_file Path to the plugin file relative to the plugins directory.
-		 * @param array  $plugin_data An array of plugin data. See get_plugin_data()
+		 * @param array  $plugin_data An array of plugin data. See `get_plugin_data()`
 		 *                            and the {@see 'plugin_row_meta'} filter for the list
 		 *                            of possible values.
 		 * @param string $status      Status filter currently applied to the plugin list.
@@ -1356,7 +1348,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		 *              to possible values for `$status`.
 		 *
 		 * @param string $plugin_file Path to the plugin file relative to the plugins directory.
-		 * @param array  $plugin_data An array of plugin data. See get_plugin_data()
+		 * @param array  $plugin_data An array of plugin data. See `get_plugin_data()`
 		 *                            and the {@see 'plugin_row_meta'} filter for the list
 		 *                            of possible values.
 		 * @param string $status      Status filter currently applied to the plugin list.

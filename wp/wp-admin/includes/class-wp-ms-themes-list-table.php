@@ -11,6 +11,7 @@
  * Core class used to implement displaying themes in a list table for the network admin.
  *
  * @since 3.1.0
+ * @access private
  *
  * @see WP_List_Table
  */
@@ -322,7 +323,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * @return string[] Array of column titles keyed by their column name.
+	 * @return array
 	 */
 	public function get_columns() {
 		$columns = array(
@@ -343,7 +344,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 	 */
 	protected function get_sortable_columns() {
 		return array(
-			'name' => array( 'name', false, __( 'Theme' ), __( 'Table ordered by Theme Name.' ), 'asc' ),
+			'name' => 'name',
 		);
 	}
 
@@ -443,15 +444,16 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 			}
 
 			if ( 'search' !== $type ) {
-				$status_links[ $type ] = array(
-					'url'     => esc_url( add_query_arg( 'theme_status', $type, $url ) ),
-					'label'   => sprintf( $text, number_format_i18n( $count ) ),
-					'current' => $type === $status,
+				$status_links[ $type ] = sprintf(
+					"<a href='%s'%s>%s</a>",
+					esc_url( add_query_arg( 'theme_status', $type, $url ) ),
+					( $type === $status ) ? ' class="current" aria-current="page"' : '',
+					sprintf( $text, number_format_i18n( $count ) )
 				);
 			}
 		}
 
-		return $this->get_views_links( $status_links );
+		return $status_links;
 	}
 
 	/**
@@ -512,18 +514,8 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 		$theme       = $item;
 		$checkbox_id = 'checkbox_' . md5( $theme->get( 'Name' ) );
 		?>
-		<label class="label-covers-full-cell" for="<?php echo $checkbox_id; ?>" >
-			<span class="screen-reader-text">
-			<?php
-			printf(
-				/* translators: Hidden accessibility text. %s: Theme name */
-				__( 'Select %s' ),
-				$theme->display( 'Name' )
-			);
-			?>
-			</span>
-		</label>
 		<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $theme->get_stylesheet() ); ?>" id="<?php echo $checkbox_id; ?>" />
+		<label class="screen-reader-text" for="<?php echo $checkbox_id; ?>" ><?php _e( 'Select' ); ?>  <?php echo $theme->display( 'Name' ); ?></label>
 		<?php
 	}
 

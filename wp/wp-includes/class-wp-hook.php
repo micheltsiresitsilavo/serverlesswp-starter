@@ -15,7 +15,6 @@
  * @see Iterator
  * @see ArrayAccess
  */
-#[AllowDynamicProperties]
 final class WP_Hook implements Iterator, ArrayAccess {
 
 	/**
@@ -290,13 +289,11 @@ final class WP_Hook implements Iterator, ArrayAccess {
 		$nesting_level = $this->nesting_level++;
 
 		$this->iterations[ $nesting_level ] = array_keys( $this->callbacks );
-
-		$num_args = count( $args );
+		$num_args                           = count( $args );
 
 		do {
 			$this->current_priority[ $nesting_level ] = current( $this->iterations[ $nesting_level ] );
-
-			$priority = $this->current_priority[ $nesting_level ];
+			$priority                                 = $this->current_priority[ $nesting_level ];
 
 			foreach ( $this->callbacks[ $priority ] as $the_ ) {
 				if ( ! $this->doing_action ) {
@@ -412,7 +409,7 @@ final class WP_Hook implements Iterator, ArrayAccess {
 		$normalized = array();
 
 		foreach ( $filters as $hook_name => $callback_groups ) {
-			if ( $callback_groups instanceof WP_Hook ) {
+			if ( is_object( $callback_groups ) && $callback_groups instanceof WP_Hook ) {
 				$normalized[ $hook_name ] = $callback_groups;
 				continue;
 			}

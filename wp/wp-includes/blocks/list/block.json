@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schemas.wp.org/trunk/block.json",
-	"apiVersion": 3,
+	"apiVersion": 2,
 	"name": "core/list",
 	"title": "List",
 	"category": "text",
@@ -40,13 +40,12 @@
 		"className": false,
 		"typography": {
 			"fontSize": true,
-			"lineHeight": true,
 			"__experimentalFontFamily": true,
-			"__experimentalFontWeight": true,
+			"lineHeight": true,
 			"__experimentalFontStyle": true,
-			"__experimentalTextTransform": true,
-			"__experimentalTextDecoration": true,
+			"__experimentalFontWeight": true,
 			"__experimentalLetterSpacing": true,
+			"__experimentalTextTransform": true,
 			"__experimentalDefaultControls": {
 				"fontSize": true
 			}
@@ -57,14 +56,6 @@
 			"__experimentalDefaultControls": {
 				"background": true,
 				"text": true
-			}
-		},
-		"spacing": {
-			"margin": true,
-			"padding": true,
-			"__experimentalDefaultControls": {
-				"margin": false,
-				"padding": false
 			}
 		},
 		"__unstablePasteTextInline": true,

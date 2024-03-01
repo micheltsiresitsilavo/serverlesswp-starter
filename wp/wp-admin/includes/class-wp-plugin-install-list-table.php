@@ -11,6 +11,7 @@
  * Core class used to implement displaying plugins to install in a list table.
  *
  * @since 3.1.0
+ * @access private
  *
  * @see WP_List_Table
  */
@@ -30,7 +31,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Returns the list of known plugins.
+	 * Return the list of known plugins.
 	 *
 	 * Uses the transient data from the updates API to determine the known
 	 * installed plugins.
@@ -66,7 +67,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Returns a list of slugs of installed plugins, if known.
+	 * Return a list of slugs of installed plugins, if known.
 	 *
 	 * Uses the transient data from the updates API to determine the slugs of
 	 * known installed plugins. This might be better elsewhere, perhaps even
@@ -88,7 +89,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 	 * @global string $term
 	 */
 	public function prepare_items() {
-		require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
+		include_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 
 		global $tabs, $tab, $paged, $type, $term;
 
@@ -105,7 +106,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 			$tabs['search'] = __( 'Search Results' );
 		}
 
-		if ( 'beta' === $tab || str_contains( get_bloginfo( 'version' ), '-' ) ) {
+		if ( 'beta' === $tab || false !== strpos( get_bloginfo( 'version' ), '-' ) ) {
 			$tabs['beta'] = _x( 'Beta Testing', 'Plugin Installer' );
 		}
 
@@ -115,10 +116,8 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 		$tabs['favorites']   = _x( 'Favorites', 'Plugin Installer' );
 
 		if ( current_user_can( 'upload_plugins' ) ) {
-			/*
-			 * No longer a real tab. Here for filter compatibility.
-			 * Gets skipped in get_views().
-			 */
+			// No longer a real tab. Here for filter compatibility.
+			// Gets skipped in get_views().
 			$tabs['upload'] = __( 'Upload Plugin' );
 		}
 
@@ -311,20 +310,18 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 
 		$display_tabs = array();
 		foreach ( (array) $tabs as $action => $text ) {
-			$display_tabs[ 'plugin-install-' . $action ] = array(
-				'url'     => self_admin_url( 'plugin-install.php?tab=' . $action ),
-				'label'   => $text,
-				'current' => $action === $tab,
-			);
+			$current_link_attributes                     = ( $action === $tab ) ? ' class="current" aria-current="page"' : '';
+			$href                                        = self_admin_url( 'plugin-install.php?tab=' . $action );
+			$display_tabs[ 'plugin-install-' . $action ] = "<a href='$href'$current_link_attributes>$text</a>";
 		}
 		// No longer a real tab.
 		unset( $display_tabs['plugin-install-upload'] );
 
-		return $this->get_views_links( $display_tabs );
+		return $display_tabs;
 	}
 
 	/**
-	 * Overrides parent views so we can use the filter bar display.
+	 * Override parent views so we can use the filter bar display.
 	 */
 	public function views() {
 		$views = $this->get_views();
@@ -426,7 +423,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * @return string[] Array of column titles keyed by their column name.
+	 * @return array
 	 */
 	public function get_columns() {
 		return array();
