@@ -9,7 +9,8 @@ exports.handler = async function (event, context, callback) {
   setup();
 
   // Send the request (event object) to the serverlesswp library. It includes the PHP server that allows WordPress to handle the request.
-   await serverlesswp({ docRoot: "/tmp/wp", event: event });
- 
+  const response = await serverlesswp({ docRoot: "/tmp/wp", event: event });
+  console.log(response)
+ return response
 
 };
